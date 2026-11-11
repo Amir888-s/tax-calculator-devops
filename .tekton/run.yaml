@@ -1,0 +1,29 @@
+# Replace the registry namespace before creating a run.
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: tax-calculator-
+spec:
+  pipelineRef:
+    name: tax-calculator
+  taskRunTemplate:
+    serviceAccountName: tax-pipeline
+  params:
+    - name: repo-url
+      value: https://github.com/Amir888-s/tax-calculator-devops.git
+    - name: image
+      value: us.icr.io/YOUR_NAMESPACE/tax-calculator:v1
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: registry-auth
+      secret:
+        secretName: registry-auth
+        items:
+          - key: .dockerconfigjson
+            path: config.json

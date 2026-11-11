@@ -1,0 +1,26 @@
+Epic title: Modernise Tax Calculator
+
+Epic description:
+Modernise the manually deployed Tax Calculator by containerizing it with Docker, deploying it to IBM Cloud Code Engine, and introducing a Tekton pipeline that tests and packages the application before deployment. Deployment proceeds only when all required tests pass.
+
+Story 1: Containerizing the application
+As a developer, I want to run unit tests and package the Tax Calculator in a Docker container so that it runs consistently across environments.
+Acceptance criteria:
+- All seven original Jasmine specs pass with zero failures.
+- The Dockerfile uses nginx and copies the five required frontend files individually.
+- The image builds successfully and serves the calculator on host port 8080.
+
+Story 2: Deploying on IBM Cloud
+As an application owner, I want to deploy the containerized calculator using IBM Cloud Code Engine so that users can access it without an in-house server.
+Acceptance criteria:
+- The image is pushed to the allocated IBM Cloud Container Registry namespace.
+- Code Engine reports a successful application deployment on container port 80.
+- The application opens at the URL returned by Code Engine.
+
+Story 3: Creating a pipeline for packaging and deploying the application
+As a developer, I want a Tekton pipeline to automate cloning, dependency installation, tests, and image building and publishing so that delivery is repeatable.
+Acceptance criteria:
+- The pipeline runs cleanup, clone, npm installation, Jasmine tests, and Buildah in order.
+- A test failure prevents the image build from starting.
+- Registry authentication is supplied through a Secret, not committed to GitHub.
+- A successful pipeline image is deployed with Code Engine and the final application is captured in a screenshot.

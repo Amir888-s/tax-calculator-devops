@@ -1,0 +1,95 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tax-clone
+spec:
+  params:
+    - name: repo-url
+    - name: revision
+      default: main
+  workspaces:
+    - name: source
+  steps:
+    - name: clone
+      image: alpine/git:latest
+      env:
+        - name: REPO_URL
+          value: $(params.repo-url)
+        - name: REVISION
+          value: $(params.revision)
+      script: |
+        #!/bin/sh
+        set -eu
+        git clone --branch "$REVISION" --depth 1 -- "$REPO_URL" "$(workspaces.source.path)/repo"
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tax-test
+spec:
+  workspaces:
+    - name: source
+  steps:
+    - name: jasmine
+      image: node:24-alpine
+      workingDir: $(workspaces.source.path)/repo
+      script: |
+        #!/bin/sh
+        set -eu
+        npm ci
+        npm test
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tax-build-push
+spec:
+  params:
+    - name: image
+  results:
+    - name: digest
+  workspaces:
+    - name: source
+    - name: registry-auth
+  steps:
+    - name: build-push
+      image: quay.io/buildah/stable:latest
+      securityContext:
+        privileged: true
+      workingDir: $(workspaces.source.path)/repo
+      env:
+        - name: IMAGE
+          value: $(params.image)
+        - name: REGISTRY_AUTH_FILE
+          value: $(workspaces.registry-auth.path)/config.json
+      script: |
+        #!/bin/sh
+        set -eu
+        buildah --storage-driver=vfs bud -t "$IMAGE" .
+        buildah --storage-driver=vfs push --digestfile "$(results.digest.path)" "$IMAGE" "docker://$IMAGE"
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tax-deploy
+spec:
+  params:
+    - name: image
+    - name: digest
+  workspaces:
+    - name: source
+  steps:
+    - name: deploy
+      image: bitnami/kubectl:latest
+      workingDir: $(workspaces.source.path)/repo
+      env:
+        - name: IMAGE
+          value: $(params.image)
+        - name: DIGEST
+          value: $(params.digest)
+      script: |
+        #!/bin/sh
+        set -eu
+        sed "s|IMAGE_PLACEHOLDER|${IMAGE}@${DIGEST}|g" k8s/deployment.yaml | kubectl apply -f -
+        kubectl apply -f k8s/service.yaml
+        kubectl rollout status deployment/tax-calculator --timeout=180s

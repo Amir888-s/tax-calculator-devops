@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tax Calculator</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#eef3f8;color:#172b42;font:17px system-ui,sans-serif}main{max-width:760px;margin:8vh auto;padding:32px}header{margin-bottom:32px}.label{color:#3763ad;font-size:13px;font-weight:700;letter-spacing:2px}h1{font-size:44px;letter-spacing:-2px;margin:12px 0}p{line-height:1.6;color:#53667c}.card{background:white;padding:32px;border-radius:20px;box-shadow:0 16px 60px #16324f12}label{display:block;font-weight:600;margin:0 0 8px}input{width:100%;padding:14px;border:1px solid #adbdcf;border-radius:8px;font:inherit;margin-bottom:24px}button{background:#2459bd;color:white;border:0;border-radius:8px;padding:15px 24px;font:inherit;font-weight:600;cursor:pointer}button:hover{background:#194694}button:focus-visible,input:focus-visible{outline:3px solid #8bb9ff;outline-offset:3px}dl{display:grid;grid-template-columns:1fr 1fr;gap:16px;border-top:1px solid #e1e8f0;padding-top:24px;margin-top:28px}dt{color:#53667c}dd{text-align:right;margin:0;font-weight:700}#error{color:#a52626}footer{font-size:13px;margin-top:24px;color:#65778b}@media(max-width:500px){main{padding:20px;margin:3vh auto}.card{padding:24px}h1{font-size:36px}}
+  </style>
+</head>
+<body><main>
+  <header><div class="label">PLAN WITH CLARITY</div><h1>Tax Calculator</h1><p>Enter your income and a tax rate to estimate your tax and take-home amount.</p></header>
+  <section class="card" aria-label="Tax calculation">
+    <form id="calculator">
+      <label for="income">Gross income</label><input id="income" type="number" min="0" max="1000000000000" step="0.01" value="50000" required>
+      <label for="rate">Tax rate (%)</label><input id="rate" type="number" min="0" max="100" step="0.01" value="20" required>
+      <button type="submit">Calculate tax</button>
+    </form>
+    <p id="error" role="alert" hidden></p>
+    <div id="result" aria-live="polite" hidden><dl><dt>Estimated tax</dt><dd id="tax"></dd><dt>Net income</dt><dd id="net"></dd></dl></div>
+  </section>
+  <footer>Educational flat-rate example. Amounts use the same currency as your input; no jurisdiction-specific rules are applied.</footer>
+</main><script>
+  const form = document.querySelector('#calculator');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const error = document.querySelector('#error');
+    const result = document.querySelector('#result');
+    error.hidden = true; result.hidden = true;
+    try {
+      const query = new URLSearchParams({income: form.querySelector('#income').value, rate: form.querySelector('#rate').value});
+      const response = await fetch('/api/tax?' + query);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      const format = value => value.toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2});
+      document.querySelector('#tax').textContent = format(data.tax);
+      document.querySelector('#net').textContent = format(data.netIncome);
+      result.hidden = false;
+    } catch (failure) { error.textContent = failure.message; error.hidden = false; }
+  });
+</script></body></html>

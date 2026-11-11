@@ -1,0 +1,9 @@
+{
+  "name": "tax-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Educational tax calculator with Docker and Tekton delivery",
+  "scripts": { "start": "node src/server.js", "test": "jasmine" },
+  "engines": { "node": ">=22" },
+  "devDependencies": { "jasmine": "7.0.0" }
+}
